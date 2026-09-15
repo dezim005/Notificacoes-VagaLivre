@@ -3,233 +3,95 @@ datasource db {
   url      = "file:./dev.db"
 }
 
-
-
 generator client {
-
-provider = "prisma-client-js"
-
+  provider = "prisma-client-js"
 }
-
-
-
-enum Perfil {
-
-ADMIN
-
-SINDICO
-
-MORADOR
-
-}
-
-
-
-enum TipoVaga {
-
-COBERTA
-
-DESCOBERTA
-
-}
-
-
-
-enum StatusVaga {
-
-LIVRE
-
-OCUPADA
-
-COMPARTILHADA
-
-}
-
-
-
-enum StatusCompartilhamento {
-
-ATIVO
-
-FINALIZADO
-
-}
-
-
-
-enum StatusReserva {
-
-CONFIRMADA
-
-CANCELADA
-
-FINALIZADA
-
-}
-
-
 
 model Usuario {
+  id               String   @id @default(uuid())
+  nome             String
+  email            String   @unique
+  senha            String
+  perfil           String   @default("MORADOR")
+  apartamento      String
+  bloco            String
+  celular          String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  veiculos         Veiculo[]
+  vagasFixas       Vaga[] @relation("VagaProprietario")
+  reservas         Reserva[]
+  compartilhamentos Compartilhamento[]
+  notificacoes     Notification[]
 
-id String @id @default(uuid())
-
-nome String
-
-email String @unique
-
-senha String
-
-perfil Perfil @default(MORADOR)
-
-apartamento String
-
-bloco String
-
-celular String
-
-createdAt DateTime @default(now())
-
-updatedAt DateTime @updatedAt
-
-veiculos Veiculo[]
-
-vagasFixas Vaga[] @relation("VagaProprietario")
-
-reservas Reserva[]
-
-compartilhamentos Compartilhamento[]
-
-notificacoes     Notification[]
-
-
-
-@@map("usuarios")
-
+  @@map("usuarios")
 }
-
-
 
 model Veiculo {
+  id             String   @id @default(uuid())
+  marca          String
+  modelo         String
+  cor            String
+  placa          String   @unique
+  proprietarioId String
+  proprietario   Usuario  @relation(fields: [proprietarioId], references: [id], onDelete: Cascade)
+  reservas       Reserva[]
+  createdAt      DateTime @default(now())
 
-id String @id @default(uuid())
-
-marca String
-
-modelo String
-
-cor String
-
-placa String @unique
-
-proprietarioId String
-
-proprietario Usuario @relation(fields: [proprietarioId], references: [id], onDelete: Cascade)
-
-reservas Reserva[]
-
-createdAt DateTime @default(now())
-
-
-
-@@map("veiculos")
-
+  @@map("veiculos")
 }
-
-
 
 model Vaga {
+  id             String   @id @default(uuid())
+  numero         Int      @unique
+  tipo           String   @default("COBERTA")
+  status         String   @default("LIVRE")
+  proprietarioId String?
+  proprietario   Usuario? @relation("VagaProprietario", fields: [proprietarioId], references: [id])
+  reservas       Reserva[]
+  compartilhados Compartilhamento[]
 
-id String @id @default(uuid())
-
-numero Int @unique
-
-tipo TipoVaga @default(COBERTA)
-
-status StatusVaga @default(LIVRE)
-
-proprietarioId String?
-
-proprietario Usuario? @relation("VagaProprietario", fields: [proprietarioId], references: [id])
-
-reservas Reserva[]
-
-compartilhados Compartilhamento[]
-
-
-
-@@map("vagas")
-
+  @@map("vagas")
 }
-
-
 
 model Compartilhamento {
+  id             String   @id @default(uuid())
+  vagaId         String
+  vaga           Vaga     @relation(fields: [vagaId], references: [id], onDelete: Cascade)
+  proprietarioId String
+  proprietario   Usuario  @relation(fields: [proprietarioId], references: [id], onDelete: Cascade)
+  dataInicio     DateTime
+  dataFim        DateTime
+  status         String   @default("ATIVO")
 
-id String @id @default(uuid())
-
-vagaId String
-
-vaga Vaga @relation(fields: [vagaId], references: [id], onDelete: Cascade)
-
-proprietarioId String
-
-proprietario Usuario @relation(fields: [proprietarioId], references: [id], onDelete: Cascade)
-
-dataInicio DateTime
-
-dataFim DateTime
-
-status StatusCompartilhamento @default(ATIVO)
-
-
-
-@@map("compartilhamentos")
-
+  @@map("compartilhamentos")
 }
 
-
-
 model Reserva {
+  id         String   @id @default(uuid())
+  vagaId     String
+  vaga       Vaga     @relation(fields: [vagaId], references: [id], onDelete: Cascade)
+  moradorId  String
+  morador    Usuario  @relation(fields: [moradorId], references: [id], onDelete: Cascade)
+  veiculoId  String
+  veiculo    Veiculo  @relation(fields: [veiculoId], references: [id], onDelete: Cascade)
+  dataInicio DateTime
+  dataFim    DateTime
+  status     String   @default("CONFIRMADA")
+  createdAt  DateTime @default(now())
 
-id String @id @default(uuid())
-
-vagaId String
-
-vaga Vaga @relation(fields: [vagaId], references: [id], onDelete: Cascade)
-
-moradorId String
-
-morador Usuario @relation(fields: [moradorId], references: [id], onDelete: Cascade)
-
-veiculoId String
-
-veiculo Veiculo @relation(fields: [veiculoId], references: [id], onDelete: Cascade)
-
-dataInicio DateTime
-
-dataFim DateTime
-
-status StatusReserva @default(CONFIRMADA)
-
-createdAt DateTime @default(now())
-
-
-
-@@map("reservas")
-
-} 
+  @@map("reservas")
+}
 
 model Notification {
   id        String   @id @default(uuid())
-  userId    String   // Tipo String para bater com o ID do Usuario
+  userId    String
   title     String
   message   String
   type      String   @default("INFO")
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
-
-  // Isso conecta a sua notificação ao usuário do sistema
   usuario   Usuario  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("notificacoes") // Padrão que o seu grupo está usando
+  @@map("notificacoes")
 }
